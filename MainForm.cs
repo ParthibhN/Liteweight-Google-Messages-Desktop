@@ -131,6 +131,26 @@ public partial class MainForm : Form
             // Automatically grant required permissions (Notifications, Clipboard, Microphone)
             _webView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
 
+            // Bridge web focus events (triggered when clicking a desktop notification to focus/open the chat)
+            await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
+                window.addEventListener('focus', function() {
+                    window.chrome?.webview?.postMessage('restore_window');
+                });
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        window.chrome?.webview?.postMessage('restore_window');
+                    }
+                });
+            ");
+
+            _webView.CoreWebView2.WebMessageReceived += (s, e) =>
+            {
+                if (e.TryGetWebMessageAsString() == "restore_window")
+                {
+                    this.BeginInvoke(RestoreWindow);
+                }
+            };
+
             // Handle new window requests: keep Google Account/Auth flows internal, open external SMS links in system browser
             _webView.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
 
@@ -197,6 +217,14 @@ public partial class MainForm : Form
         return false;
     }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    private const int SW_RESTORE = 9;
+
     private void RestoreWindow()
     {
         Show();
@@ -204,6 +232,8 @@ public partial class MainForm : Form
         {
             WindowState = FormWindowState.Normal;
         }
+        ShowWindow(Handle, SW_RESTORE);
+        SetForegroundWindow(Handle);
         Activate();
         BringToFront();
     }
