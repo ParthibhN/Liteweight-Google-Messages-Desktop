@@ -1,0 +1,20 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+
+## Visual Studio cache & user-specific files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+## ReSharper / Rider / VSCode
+.idea/
+.vscode/
+
+## Crash & dump files
+*.dmp
+*.dump
+*.log
