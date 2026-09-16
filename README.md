@@ -19,17 +19,15 @@ Designed to be ultra-fast and consume minimal system resources (~50–100MB RAM)
 - **📥 System Tray & Background Operation**: Closing the window minimizes the app to the system tray so you never miss a message.
 - **🎯 Single-Instance Protection**: Opening the app shortcut while it is already running seamlessly focuses your existing window without opening conflicting duplicate sessions.
 - **🌐 Smart External Link Handling**: Web links inside text messages open automatically in your default system browser (Chrome, Firefox, Edge, etc.).
-- **🖥️ High-DPI & Multi-Monitor Support**: Crisp typography and vector icon scaling on 1080p, 1440p, and 4K monitors.
+- **🖥️ High-DPI & Multi-Monitor Support**: Crisp vector icon scaling and font makes it accessible from a 720p monitor all the way up to even 4k monitors.
 
 ---
 
-## 📥 Pre-Built Downloads
-
-You do not need to compile the project yourself to use it.
+## 📥 Download
 
 1. Go to the [**Releases**](https://github.com/ParthibhN/Liteweight-Google-Messages-Desktop/releases) page.
-2. Download `GoogleMessagesDesktop.exe`.
-3. Move the file anywhere you like (e.g. `C:\Users\<YourUser>\AppData\Local\Programs` or your Desktop) and run it!
+2. Download 'GoogleMessagesDesktop.exe'.
+3. Move the file anywhere you like and just run it!
 
 > **Note:** Requires Windows 10 (1809+) or Windows 11 with the Microsoft Edge WebView2 Runtime (pre-installed by default on modern Windows).
 
