@@ -8,6 +8,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -21,28 +24,34 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Publish Framework-Dependent Single-File Executable
-        run: |
-          dotnet publish -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -o ./dist/framework-dependent
-
-      - name: Publish Self-Contained Single-File Executable
+      - name: Publish Self-Contained Executable (Standalone - No .NET Install Needed)
         run: |
           dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o ./dist/self-contained
+          Copy-Item ./dist/self-contained/GoogleMessagesDesktop.exe ./dist/GoogleMessagesDesktop-Standalone-x64.exe
+
+      - name: Publish Framework-Dependent Executable (Lightweight - Requires .NET 8)
+        run: |
+          dotnet publish -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true -o ./dist/framework-dependent
+          Copy-Item ./dist/framework-dependent/GoogleMessagesDesktop.exe ./dist/GoogleMessagesDesktop-FrameworkDependent-x64.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GoogleMessagesDesktop-Builds
+          name: GoogleMessagesDesktop-Binaries
           path: |
-            ./dist/framework-dependent/GoogleMessagesDesktop.exe
-            ./dist/self-contained/GoogleMessagesDesktop.exe
+            ./dist/GoogleMessagesDesktop-Standalone-x64.exe
+            ./dist/GoogleMessagesDesktop-FrameworkDependent-x64.exe
 
-      - name: Create GitHub Release (on tag)
+      - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          name: "Google Messages Desktop ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
           files: |
-            ./dist/framework-dependent/GoogleMessagesDesktop.exe
-            ./dist/self-contained/GoogleMessagesDesktop.exe
+            ./dist/GoogleMessagesDesktop-Standalone-x64.exe
+            ./dist/GoogleMessagesDesktop-FrameworkDependent-x64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
