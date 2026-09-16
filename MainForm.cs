@@ -131,23 +131,62 @@ public partial class MainForm : Form
             // Automatically grant required permissions (Notifications, Clipboard, Microphone)
             _webView.CoreWebView2.PermissionRequested += CoreWebView2_PermissionRequested;
 
-            // Bridge web focus events (triggered when clicking a desktop notification to focus/open the chat)
+            // Script bridge: Hook notifications & service worker conversation routing
             await _webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
-                window.addEventListener('focus', function() {
-                    window.chrome?.webview?.postMessage('restore_window');
-                });
-                document.addEventListener('visibilitychange', function() {
-                    if (document.visibilityState === 'visible') {
-                        window.chrome?.webview?.postMessage('restore_window');
+                (function() {
+                    // Hook Notification click events
+                    if (window.Notification) {
+                        const OriginalNotification = window.Notification;
+                        window.Notification = function(title, options) {
+                            const notif = new OriginalNotification(title, options);
+                            notif.addEventListener('click', function() {
+                                window.chrome?.webview?.postMessage('notification_clicked');
+                            });
+                            return notif;
+                        };
+                        window.Notification.permission = OriginalNotification.permission;
+                        window.Notification.requestPermission = OriginalNotification.requestPermission.bind(OriginalNotification);
                     }
-                });
+
+                    // Hook ServiceWorker notifications
+                    if (navigator.serviceWorker) {
+                        navigator.serviceWorker.addEventListener('message', function(e) {
+                            window.chrome?.webview?.postMessage('notification_clicked');
+                        });
+                    }
+
+                    // Detect URL navigation to a specific conversation
+                    let lastUrl = location.href;
+                    setInterval(function() {
+                        if (location.href !== lastUrl) {
+                            lastUrl = location.href;
+                            if (location.href.includes('/conversations/')) {
+                                window.chrome?.webview?.postMessage('conversation_opened');
+                            }
+                        }
+                    }, 300);
+                })();
             ");
 
             _webView.CoreWebView2.WebMessageReceived += (s, e) =>
             {
-                if (e.TryGetWebMessageAsString() == "restore_window")
+                string msg = e.TryGetWebMessageAsString();
+                if (msg == "notification_clicked" || msg == "conversation_opened")
                 {
                     this.BeginInvoke(RestoreWindow);
+                }
+            };
+
+            // When user clicks a notification and URL changes to conversation thread, restore window if hidden
+            _webView.CoreWebView2.SourceChanged += (s, e) =>
+            {
+                string? currentSource = _webView.CoreWebView2?.Source;
+                if (!string.IsNullOrEmpty(currentSource) && currentSource.Contains("/conversations/"))
+                {
+                    if (!Visible || WindowState == FormWindowState.Minimized)
+                    {
+                        this.BeginInvoke(RestoreWindow);
+                    }
                 }
             };
 
@@ -221,18 +260,24 @@ public partial class MainForm : Form
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
 
-    private const int SW_RESTORE = 9;
+    private FormWindowState _lastNonMinimizedState = FormWindowState.Normal;
 
     private void RestoreWindow()
     {
-        Show();
+        if (!Visible)
+        {
+            Show();
+        }
+
         if (WindowState == FormWindowState.Minimized)
         {
-            WindowState = FormWindowState.Normal;
+            WindowState = _lastNonMinimizedState;
         }
-        ShowWindow(Handle, SW_RESTORE);
+
+        // Force Windows to allow bringing window to the foreground on notification click
+        keybd_event(0, 0, 0, 0);
         SetForegroundWindow(Handle);
         Activate();
         BringToFront();
@@ -269,7 +314,11 @@ public partial class MainForm : Form
 
     private void MainForm_Resize(object? sender, EventArgs e)
     {
-        if (WindowState == FormWindowState.Minimized)
+        if (WindowState != FormWindowState.Minimized)
+        {
+            _lastNonMinimizedState = WindowState;
+        }
+        else
         {
             Hide();
         }
