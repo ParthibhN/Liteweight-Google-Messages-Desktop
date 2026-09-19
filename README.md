@@ -99,9 +99,10 @@ Deleting this folder will reset the app to its initial state.
 <details>
 <summary><b>How do I make the app start automatically with Windows?</b></summary>
 1. Press <code>Win + R</code>, type <code>shell:startup</code>, and press Enter.<br>
-2. Right-click inside the folder $\rightarrow$ <b>New</b> $\rightarrow$ <b>Shortcut</b>.<br>
+2. Right-click inside the folder → <b>New</b> → <b>Shortcut</b>.<br>
 3. Browse and select your <code>GoogleMessagesDesktop.exe</code>.
 </details>
+
 
 <details>
 <summary><b>How do I completely close the app?</b></summary>
